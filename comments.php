@@ -66,18 +66,20 @@ function show_comment($comment, $comments = [], $filters = []){
         <div class="con">
             <div>
                 <h3 class="name">' . htmlspecialchars($comment['name'], ENT_QUOTES) . ' </h3>
+                <br>
                 <span class="date">' . time_elapsed_string($comment['submit_date']) . '</span>
             </div>
+
             <p class="comment_content">
             ' . $content . '
             ' . ($comment['approved'] ? '' : '<br><br><i>(Awaiting approval)</i>') . '
             </p>
             <div class="comment_footer">
                 <span class="num">' . $comment['votes'] . '</span>
-                <a href="#" class="vote" data-vote="up" data-comment-id="' . $comment['id'] . '">
+                <a href="#" class="vote" data-vote="up" data-comment-id="' . $comment['id'] .'">
                 <i class="arrow up"></i>
                 </a>
-                <a href="#" class="vote" data-vote="down" data-comment-id="' . $comment['id'] . '">
+                <a href="#" class="vote" data-vote="down" data-comment-id="' . $comment['id'] .'">
                 <i class="arrow down"></i>
                 </a>
                 <a class="reply_comment_btn" href="#" data-comment-id="' . $comment['id'] . '">
@@ -93,7 +95,7 @@ function show_comment($comment, $comments = [], $filters = []){
       return $html;
 }
 
-// function who sho comments
+// function who show comments
 
 function show_comments($comments, $filters, $parent_id = -1) {
     $html = ''; 
@@ -136,7 +138,7 @@ if(isset($_GET['page_id'])){
     if(isset($_POST['name'], $_POST['content'], $_POST['parent_id'], $_POST['img_url']))
     {
         //insert a new comment
-        $stmt = $pdo->prepare('INSERT INTO comments (page_id, parent_id, name, content, submit_date, img, comments_approval_required) VALUES (?,?,?,?,NOW(),?,?)');
+        $stmt = $pdo->prepare('INSERT INTO comments (page_id, parent_id, name, content, submit_date, img, approved) VALUES (?,?,?,?,NOW(),?,?)');
         $approved = comments_approval_required ? 0 : 1;
         $stmt->execute([ $_GET['page_id'], $_POST['parent_id'], $_POST['name'], $_POST['content'], $_POST['img_url'], $approved]);
         //retrieve the comment
@@ -172,7 +174,9 @@ if(isset($_GET['page_id'])){
     $comments_per_pagination_page = isset($_GET['comments_to_show']) ? $_GET['comments_to_show'] : 30;
     $limit = isset($_GET['current_pagination_page']) ? 'LIMIT :current_pagination_page' : '';
     $sort_by = 'ORDER BY votes DESC, submit_date DESC';
+    
     if(isset($_GET['sort_by'])){
+        
         //user has changed the sort by
         $sort_by = $_GET['sort_by'] == 'newest' ? 'ORDER BY submit_date DESC' : $sort_by;
         $sort_by = $_GET['sort_by'] == 'oldest' ? 'ORDER BY submit_date ASC' : $sort_by;
@@ -180,8 +184,11 @@ if(isset($_GET['page_id'])){
     }
     //to get all comments by the page Id
     $stmt = $pdo->prepare('SELECT * FROM comments WHERE page_id = :page_id AND approved = 1 ' . $sort_by . ' ' . $limit);
+   
     if($limit){
+       
         $stmt->bindValue(':current_pagination_page', (int)$_GET['current_pagination_page']*(int)$comments_per_pagination_page, PDO::PARAM_INT);
+        
     }
     //bind the page Id to our query
     // lier l'identifiant de la page à notre requête
@@ -189,13 +196,17 @@ if(isset($_GET['page_id'])){
     $stmt->bindValue(':page_id', $_GET['page_id'], PDO::PARAM_INT);
     $stmt->execute();
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    //get the total number of comments
 
+    //get the total number of comments
     $stmt = $pdo->prepare('SELECT COUNT(*) AS total_comments FROM comments WHERE page_id = ? AND approved = 1');
     $stmt->execute([$_GET['page_id'] ]);
     $comments_info = $stmt->fetch(PDO::FETCH_ASSOC); 
-}else{
 
+   
+    
+}
+else{
+    
     exit('No page ID specified!');
 }
 
@@ -206,13 +217,14 @@ if(isset($_GET['page_id'])){
     <form class="" action="index.html" method="post">
         <label for="sort_by"></label>
         <select name="sort_by" id="sort_by">
-            <option value="" disabled<?=!isset($_GET['sort_by']) ? 'selected' : ''?>Sort BY></option>
+            <option value="" disabled<?=!isset($_GET['sort_by']) ? 'selected' : ''?>>Sort by</option>
             <option value="votes"<?=isset($_GET['sort_by']) && $_GET['sort_by'] == 'votes' ? ' selected' : ''?>>Votes</option>
             <option value="newest"<?=isset($_GET['sort_by']) && $_GET['sort_by'] == 'newest' ? ' selected' : ''?>>Newest</option>
             <option value="oldest"<?=isset($_GET['sort_by']) && $_GET['sort_by'] == 'oldest' ? ' selected' : ''?>>Oldest</option>
         </select>
+        <a href="#" class="write_comment_btn" data-comment-id="-1">Write Comment</a>
     </form>
-    <a href="#" class="write_comment_btn" data-comment-id="-1">Write Comment</a>
+    
 </div>
 
 <?=show_write_comment_form()?>
